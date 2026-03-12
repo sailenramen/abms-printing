@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABMS 3D Printing | Precision 3D Printing & Engineering Solutions</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --yellow: #FFD700;
+  --yellow-bright: #FFE84D;
+  --yellow-dim: #B8960A;
+  --black: #080808;
+  --dark: #0F0F0F;
+  --dark2: #141414;
+  --dark3: #1A1A1A;
+  --dark4: #222222;
+  --gray: #666;
+  --gray2: #999;
+  --white: #F0F0F0;
+  --glow: 0 0 20px rgba(255,215,0,0.5), 0 0 40px rgba(255,215,0,0.2);
+  --glow-sm: 0 0 10px rgba(255,215,0,0.4);
+  --font-head: 'Orbitron', monospace;
+  --font-body: 'Rajdhani', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 16px;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* CUSTOM CURSOR */
+.cursor { position: fixed; width: 8px; height: 8px; background: var(--yellow); border-radius: 50%; pointer-events: none; z-index: 99999; transform: translate(-50%,-50%); transition: width 0.2s, height 0.2s, background 0.2s; }
+.cursor-ring { position: fixed; width: 32px; height: 32px; border: 1px solid rgba(255,215,0,0.5); border-radius: 50%; pointer-events: none; z-index: 99998; transform: translate(-50%,-50%); transition: all 0.12s ease; }
+body:hover .cursor { display: block; }
+
+/* LOADING SCREEN */
+#loader {
+  position: fixed; inset: 0; background: var(--black); z-index: 99997;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 24px;
+}
+#loader-canvas { width: 120px; height: 120px; }
+.loader-text { font-family: var(--font-head); color: var(--yellow); font-size: 12px; letter-spacing: 4px; animation: pulse 1s infinite; }
+.loader-bar { width: 200px; height: 2px; background: var(--dark3); border-radius: 2px; overflow: hidden; }
+.loader-fill { height: 100%; background: var(--yellow); animation: loadfill 2.5s ease forwards; }
+@keyframes loadfill { from { width: 0; } to { width: 100%; } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* GRID BG */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,215,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,215,0,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* NAV */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  padding: 16px 5%;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(8,8,8,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,215,0,0.1);
+  transition: all 0.3s;
+}
+nav.scrolled { padding: 10px 5%; background: rgba(8,8,8,0.97); }
+.nav-logo {
+  font-family: var(--font-head); font-size: 20px; font-weight: 800;
+  color: var(--yellow); letter-spacing: 2px; text-decoration: none;
+  display: flex; align-items: center; gap: 8px;
+}
+.nav-logo span { color: var(--white); }
+.nav-links { display: flex; gap: 32px; list-style: none; }
+.nav-links a {
+  font-family: var(--font-body); font-size: 13px; font-weight: 600;
+  color: var(--gray2); letter-spacing: 2px; text-transform: uppercase;
+  text-decoration: none; transition: color 0.2s; position: relative;
+}
+.nav-links a::after {
+  content: ''; position: absolute; bottom: -4px; left: 0; right: 0;
+  height: 1px; background: var(--yellow); transform: scaleX(0); transition: transform 0.2s;
+}
+.nav-links a:hover { color: var(--yellow); }
+.nav-links a:hover::after { transform: scaleX(1); }
+.nav-cta {
+  background: var(--yellow); color: var(--black); padding: 9px 22px;
+  font-family: var(--font-head); font-size: 11px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; border: none;
+  cursor: pointer; transition: all 0.2s; text-decoration: none;
+}
+.nav-cta:hover { background: var(--yellow-bright); box-shadow: var(--glow); }
+.hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; }
+.hamburger span { width: 24px; height: 2px; background: var(--yellow); transition: all 0.3s; }
+
+/* HERO */
+#hero {
+  min-height: 100vh; position: relative; z-index: 1;
+  display: grid; grid-template-columns: 1fr 1fr;
+  align-items: center;
+  padding: 100px 5% 100px;
+  gap: 40px;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background: radial-gradient(ellipse at 70% 50%, rgba(255,215,0,0.06) 0%, transparent 60%),
+              radial-gradient(ellipse at 20% 80%, rgba(255,215,0,0.04) 0%, transparent 50%);
+}
+.hero-geo {
+  position: absolute; right: 0; top: 0; bottom: 0; width: 52%;
+  background: linear-gradient(135deg, var(--dark2) 0%, var(--dark) 100%);
+  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%);
+  z-index: 0;
+}
+.hero-printer-img {
+  position: relative; z-index: 2;
+  width: 100%;
+  filter: drop-shadow(0 0 60px rgba(255,215,0,0.15));
+}
+.hero-printer-placeholder {
+  width: 100%; aspect-ratio: 1;
+  background: var(--dark3);
+  border: 1px solid rgba(255,215,0,0.15);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.hero-printer-placeholder::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(255,215,0,0.05) 100%);
+}
+.hero-3d-canvas { width: 100%; height: 100%; }
+.hero-content { position: relative; z-index: 3; }
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 11px; color: var(--yellow);
+  letter-spacing: 3px; text-transform: uppercase; margin-bottom: 24px;
+}
+.hero-tag::before { content: ''; width: 30px; height: 1px; background: var(--yellow); }
+.hero-h1 {
+  font-family: var(--font-head); font-size: clamp(32px, 4vw, 62px);
+  font-weight: 900; line-height: 1.08; letter-spacing: -1px;
+  margin-bottom: 24px;
+}
+.hero-h1 em { color: var(--yellow); font-style: normal; text-shadow: var(--glow-sm); }
+.hero-sub {
+  font-size: 16px; color: var(--gray2); line-height: 1.7;
+  max-width: 440px; margin-bottom: 36px; font-weight: 400;
+}
+.hero-btns { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 48px; }
+.btn-primary {
+  background: var(--yellow); color: var(--black);
+  padding: 14px 32px; font-family: var(--font-head); font-size: 12px;
+  font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  border: none; cursor: pointer; transition: all 0.25s; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary:hover { background: var(--yellow-bright); box-shadow: var(--glow); transform: translateY(-2px); }
+.btn-outline {
+  background: transparent; color: var(--yellow);
+  padding: 14px 32px; font-family: var(--font-head); font-size: 12px;
+  font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  border: 1px solid var(--yellow-dim); cursor: pointer; transition: all 0.25s;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-outline:hover { background: rgba(255,215,0,0.08); border-color: var(--yellow); box-shadow: var(--glow-sm); transform: translateY(-2px); }
+.hero-stats {
+  display: flex; gap: 40px; flex-wrap: wrap;
+}
+.stat { }
+.stat-num { font-family: var(--font-head); font-size: 28px; font-weight: 800; color: var(--yellow); line-height: 1; }
+.stat-label { font-size: 11px; color: var(--gray); letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+
+/* SCROLL INDICATOR */
+.scroll-ind {
+  display: none;
+}
+.scroll-line { width: 1px; height: 60px; background: linear-gradient(to bottom, transparent, var(--yellow)); animation: scrolldown 2s infinite; }
+@keyframes scrolldown { 0%,100% { transform: scaleY(0); transform-origin: top; } 50% { transform: scaleY(1); } }
+
+/* SECTIONS GENERAL */
+section { position: relative; z-index: 1; padding: 80px 5%; }
+.section-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 11px; color: var(--yellow);
+  letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px;
+}
+.section-tag::before { content: '//'; opacity: 0.5; }
+h2 {
+  font-family: var(--font-head); font-size: clamp(26px, 3.5vw, 44px);
+  font-weight: 800; letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 16px;
+}
+h2 em { color: var(--yellow); font-style: normal; }
+.section-desc { font-size: 16px; color: var(--gray2); max-width: 560px; line-height: 1.7; margin-bottom: 48px; }
+
+/* ABOUT */
+#about { background: var(--dark); }
+.about-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 48px; align-items: start; }
+.profile-card {
+  background: var(--dark2); border: 1px solid rgba(255,215,0,0.15);
+  padding: 40px; position: relative; overflow: hidden;
+}
+.profile-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--yellow);
+}
+.profile-img-wrap {
+  width: 120px; height: 120px; margin: 0 auto 24px;
+  border: 2px solid var(--yellow); position: relative;
+}
+.profile-img-placeholder {
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, var(--dark3), var(--dark4));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 48px;
+}
+.profile-name { font-family: var(--font-head); font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 4px; }
+.profile-title { font-size: 13px; color: var(--yellow); text-align: center; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+.profile-inst { font-size: 13px; color: var(--gray2); text-align: center; margin-bottom: 24px; }
+.trust-badges { display: flex; flex-direction: column; gap: 12px; }
+.badge {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; background: rgba(255,215,0,0.05);
+  border-left: 2px solid var(--yellow);
+}
+.badge-icon { font-size: 20px; }
+.badge-text { font-size: 13px; font-weight: 600; letter-spacing: 1px; }
+.about-text h3 { font-family: var(--font-head); font-size: 20px; margin-bottom: 16px; }
+.about-text p { color: var(--gray2); line-height: 1.8; margin-bottom: 16px; }
+.about-features { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 32px; }
+.feat-item {
+  padding: 16px; background: var(--dark2); border: 1px solid rgba(255,215,0,0.1);
+  transition: border-color 0.2s;
+}
+.feat-item:hover { border-color: rgba(255,215,0,0.4); }
+.feat-num { font-family: var(--font-head); font-size: 28px; color: var(--yellow); font-weight: 800; }
+.feat-label { font-size: 12px; color: var(--gray2); letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; }
+
+/* SERVICES */
+#services { }
+.services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.service-card {
+  background: var(--dark); border: 1px solid rgba(255,215,0,0.1);
+  padding: 36px 28px; position: relative; overflow: hidden;
+  cursor: pointer; transition: all 0.3s; group: true;
+}
+.service-card::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: var(--yellow); transform: scaleX(0); transition: transform 0.3s;
+}
+.service-card:hover { border-color: rgba(255,215,0,0.35); transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,0.5), var(--glow-sm); }
+.service-card:hover::after { transform: scaleX(1); }
+.service-icon {
+  font-size: 40px; margin-bottom: 20px; display: block;
+  filter: grayscale(0);
+}
+.service-card h3 { font-family: var(--font-head); font-size: 16px; font-weight: 700; letter-spacing: 1px; margin-bottom: 12px; }
+.service-card p { color: var(--gray2); font-size: 14px; line-height: 1.7; margin-bottom: 16px; }
+.service-more {
+  font-size: 12px; color: var(--yellow); letter-spacing: 2px; text-transform: uppercase;
+  font-family: var(--font-mono); cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+}
+.service-expanded {
+  max-height: 0; overflow: hidden; transition: max-height 0.4s ease;
+  font-size: 13px; color: var(--gray2); line-height: 1.7;
+}
+.service-card.open .service-expanded { max-height: 200px; padding-top: 12px; }
+
+/* HOW IT WORKS BANNER */
+.how-it-works-banner {
+  background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,215,0,0.03));
+  border: 1px solid rgba(255,215,0,0.2); padding: 40px; margin-bottom: 0;
+}
+
+/* MATERIALS */
+#materials { }
+.materials-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+.mat-card {
+  background: var(--dark); border: 1px solid rgba(255,215,0,0.1);
+  padding: 28px 20px; position: relative; overflow: hidden;
+  cursor: pointer; transition: all 0.3s; text-align: center;
+}
+.mat-card:hover { border-color: rgba(255,215,0,0.4); transform: translateY(-6px); }
+.mat-front { }
+.mat-icon { font-size: 36px; margin-bottom: 16px; display: block; }
+.mat-name { font-family: var(--font-head); font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.mat-sub { font-size: 12px; color: var(--gray2); letter-spacing: 1px; }
+.mat-back {
+  position: absolute; inset: 0; background: rgba(10,10,10,0.95);
+  padding: 20px; display: flex; flex-direction: column; justify-content: center;
+  opacity: 0; transition: opacity 0.3s; pointer-events: none;
+}
+.mat-card:hover .mat-back { opacity: 1; pointer-events: all; }
+.mat-prop { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 12px; }
+.mat-prop-label { color: var(--gray2); text-transform: uppercase; letter-spacing: 1px; }
+.mat-bar-wrap { height: 3px; background: var(--dark3); flex: 1; margin: 0 8px; align-self: center; }
+.mat-bar { height: 100%; background: var(--yellow); transition: width 0.5s; }
+.mat-tag {
+  display: inline-block; margin-top: 12px; padding: 4px 10px;
+  background: rgba(255,215,0,0.1); border: 1px solid var(--yellow-dim);
+  font-size: 11px; color: var(--yellow); letter-spacing: 1px;
+}
+
+/* TECHNOLOGY */
+#technology { background: var(--dark); }
+.tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+.tech-printer {
+  background: var(--dark2); border: 1px solid rgba(255,215,0,0.15);
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden; font-size: 80px;
+}
+.tech-printer::before {
+  content: ''; position: absolute;
+  top: -50%; left: -50%; width: 200%; height: 200%;
+  background: conic-gradient(from 0deg, transparent 0%, rgba(255,215,0,0.05) 25%, transparent 50%);
+  animation: spin 8s linear infinite;
+}
+.tech-printer span { font-size: 100px; z-index: 1; filter: drop-shadow(0 0 30px rgba(255,215,0,0.3)); }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.tech-features { display: flex; flex-direction: column; gap: 24px; }
+.tech-feat {
+  display: grid; grid-template-columns: 60px 1fr; gap: 20px; align-items: start;
+  padding: 20px; background: var(--dark3); border-left: 3px solid var(--yellow-dim);
+  transition: border-color 0.2s;
+}
+.tech-feat:hover { border-left-color: var(--yellow); }
+.tech-feat-num { font-family: var(--font-head); font-size: 32px; font-weight: 800; color: var(--yellow-dim); opacity: 0.5; }
+.tech-feat h4 { font-family: var(--font-head); font-size: 14px; font-weight: 700; margin-bottom: 6px; letter-spacing: 1px; }
+.tech-feat p { font-size: 13px; color: var(--gray2); line-height: 1.6; }
+
+/* 3D VIEWER */
+#viewer { }
+.viewer-wrap {
+  display: grid; grid-template-columns: 1fr 320px; gap: 40px; align-items: start;
+}
+#three-canvas {
+  width: 100%; aspect-ratio: 16/10; background: var(--dark);
+  border: 1px solid rgba(255,215,0,0.15);
+  cursor: grab;
+}
+#three-canvas:active { cursor: grabbing; }
+.viewer-controls { }
+.ctrl-label { font-family: var(--font-mono); font-size: 11px; color: var(--yellow); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; display: block; }
+.shape-btns { display: flex; flex-direction: column; gap: 8px; margin-bottom: 32px; }
+.shape-btn {
+  padding: 12px 16px; background: var(--dark); border: 1px solid rgba(255,215,0,0.15);
+  color: var(--gray2); font-family: var(--font-mono); font-size: 12px; letter-spacing: 1px;
+  cursor: pointer; transition: all 0.2s; text-align: left; text-transform: uppercase;
+  display: flex; align-items: center; gap: 10px;
+}
+.shape-btn:hover, .shape-btn.active { background: rgba(255,215,0,0.08); border-color: var(--yellow); color: var(--yellow); }
+.ctrl-row { margin-bottom: 20px; }
+.viewer-color-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.color-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent;
+  cursor: pointer; transition: all 0.2s;
+}
+.color-btn.active, .color-btn:hover { border-color: var(--white); transform: scale(1.15); }
+.anim-toggle {
+  width: 100%; padding: 12px; background: rgba(255,215,0,0.1); border: 1px solid var(--yellow-dim);
+  color: var(--yellow); font-family: var(--font-mono); font-size: 12px; letter-spacing: 2px;
+  cursor: pointer; transition: all 0.2s; text-transform: uppercase; margin-top: 16px;
+}
+.anim-toggle:hover { background: rgba(255,215,0,0.2); }
+
+/* GALLERY */
+#gallery { background: var(--dark); }
+.gallery-tabs { display: flex; gap: 0; margin-bottom: 40px; flex-wrap: wrap; }
+.tab-btn {
+  padding: 10px 20px; background: transparent; border: 1px solid rgba(255,215,0,0.15);
+  color: var(--gray2); font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px;
+  text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+  border-right: none;
+}
+.tab-btn:last-child { border-right: 1px solid rgba(255,215,0,0.15); }
+.tab-btn.active, .tab-btn:hover { background: rgba(255,215,0,0.1); color: var(--yellow); border-color: rgba(255,215,0,0.3); }
+.gallery-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 180px; gap: 10px;
+}
+.gal-item {
+  position: relative; overflow: hidden; cursor: pointer;
+  background: var(--dark2); border: 1px solid rgba(255,215,0,0.1);
+}
+.gal-item.wide { grid-column: span 2; }
+.gal-item.tall { grid-row: span 2; }
+.gal-placeholder {
+  width: 100%; height: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px; transition: transform 0.4s;
+}
+.gal-item:hover .gal-placeholder { transform: scale(1.05); }
+.gal-icon { font-size: 48px; opacity: 0.4; }
+.gal-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%);
+  opacity: 0; transition: opacity 0.3s; display: flex; flex-direction: column;
+  justify-content: flex-end; padding: 20px;
+}
+.gal-item:hover .gal-overlay { opacity: 1; }
+.gal-title { font-family: var(--font-head); font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.gal-cat { font-size: 11px; color: var(--yellow); letter-spacing: 2px; text-transform: uppercase; font-family: var(--font-mono); }
+
+/* TESTIMONIALS */
+#testimonials { }
+.testimonials-wrap { position: relative; overflow: hidden; }
+.testimonials-track { display: flex; transition: transform 0.5s ease; }
+.testimonial {
+  min-width: 100%; padding: 0 60px;
+  display: flex; gap: 60px; align-items: center;
+}
+.test-content { flex: 1; }
+.stars { color: var(--yellow); font-size: 20px; letter-spacing: 4px; margin-bottom: 24px; }
+.test-quote {
+  font-size: clamp(18px, 2.5vw, 26px); line-height: 1.5; color: var(--white);
+  font-style: italic; margin-bottom: 24px; font-weight: 300;
+}
+.test-quote::before { content: '"'; color: var(--yellow); font-size: 48px; line-height: 0; vertical-align: -20px; margin-right: 8px; }
+.test-author { display: flex; align-items: center; gap: 16px; }
+.test-avatar {
+  width: 56px; height: 56px; background: var(--dark3);
+  border: 1px solid var(--yellow-dim); border-radius: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 24px;
+}
+.test-name { font-family: var(--font-head); font-size: 14px; font-weight: 700; }
+.test-role { font-size: 12px; color: var(--yellow); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+.test-nav { display: flex; gap: 12px; margin-top: 40px; }
+.test-btn {
+  width: 44px; height: 44px; background: transparent; border: 1px solid rgba(255,215,0,0.3);
+  color: var(--yellow); font-size: 18px; cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.test-btn:hover { background: rgba(255,215,0,0.1); border-color: var(--yellow); }
+.test-dots { display: flex; gap: 8px; align-items: center; margin-top: 16px; }
+.test-dot { width: 6px; height: 6px; background: var(--gray); cursor: pointer; transition: all 0.2s; }
+.test-dot.active { width: 24px; background: var(--yellow); }
+
+/* WORKFLOW */
+#workflow { background: var(--dark); }
+.workflow-steps {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+  position: relative; margin-top: 48px;
+}
+.workflow-steps::before {
+  content: ''; position: absolute; top: 39px; left: 12.5%; right: 12.5%; height: 1px;
+  background: linear-gradient(to right, var(--yellow-dim), var(--yellow), var(--yellow), var(--yellow-dim));
+  z-index: 0;
+}
+.step { text-align: center; padding: 0 12px; position: relative; z-index: 1; }
+.step-num {
+  width: 78px; height: 78px; margin: 0 auto 20px;
+  background: var(--dark2); border: 2px solid var(--yellow);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head); font-size: 28px; font-weight: 800; color: var(--yellow);
+  position: relative; transition: all 0.3s; box-shadow: var(--glow-sm);
+}
+.step:hover .step-num { background: var(--yellow); color: var(--black); box-shadow: var(--glow); }
+.step-icon { font-size: 26px; }
+.step h4 { font-family: var(--font-head); font-size: 13px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase; }
+.step p { font-size: 13px; color: var(--gray2); line-height: 1.6; }
+
+/* PRICING */
+#pricing { }
+.pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.price-card {
+  background: var(--dark); border: 1px solid rgba(255,215,0,0.1);
+  padding: 40px 32px; position: relative; transition: all 0.3s;
+}
+.price-card.featured {
+  border-color: var(--yellow); background: linear-gradient(135deg, rgba(255,215,0,0.05), var(--dark));
+}
+.price-card.featured::before {
+  content: 'MOST POPULAR'; position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+  background: var(--yellow); color: var(--black);
+  padding: 4px 16px; font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 2px;
+}
+.price-tier { font-family: var(--font-mono); font-size: 11px; color: var(--yellow); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 12px; }
+.price-amount { font-family: var(--font-head); font-size: 48px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+.price-amount span { font-size: 20px; color: var(--yellow); }
+.price-from { font-size: 12px; color: var(--gray2); margin-bottom: 32px; }
+.price-features { list-style: none; margin-bottom: 32px; }
+.price-features li { padding: 8px 0; font-size: 14px; color: var(--gray2); display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.price-features li::before { content: '→'; color: var(--yellow); font-size: 12px; }
+
+/* FAQ */
+#faq { background: var(--dark); }
+.faq-list { max-width: 800px; }
+.faq-item { border-bottom: 1px solid rgba(255,215,0,0.1); }
+.faq-q {
+  width: 100%; padding: 24px 0; display: flex; justify-content: space-between;
+  align-items: center; cursor: pointer; font-family: var(--font-body); font-size: 17px;
+  font-weight: 600; color: var(--white); text-align: left; background: none; border: none;
+  transition: color 0.2s;
+}
+.faq-q:hover { color: var(--yellow); }
+.faq-icon { font-size: 20px; color: var(--yellow); transition: transform 0.3s; flex-shrink: 0; font-style: normal; }
+.faq-item.open .faq-icon { transform: rotate(45deg); }
+.faq-a {
+  max-height: 0; overflow: hidden; transition: max-height 0.4s ease;
+  font-size: 15px; color: var(--gray2); line-height: 1.8;
+}
+.faq-item.open .faq-a { max-height: 200px; padding-bottom: 24px; }
+
+/* CONTACT */
+#contact { }
+.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+.contact-info h3 { font-family: var(--font-head); font-size: 20px; margin-bottom: 16px; }
+.contact-info p { color: var(--gray2); line-height: 1.8; margin-bottom: 32px; }
+.contact-detail { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.contact-icon { font-size: 20px; width: 44px; height: 44px; background: rgba(255,215,0,0.1); border: 1px solid var(--yellow-dim); display: flex; align-items: center; justify-content: center; }
+.contact-text { font-size: 14px; color: var(--gray2); }
+.contact-text strong { display: block; color: var(--white); font-family: var(--font-head); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
+.contact-form { }
+.form-group { margin-bottom: 20px; }
+.contact-form input, .contact-form textarea, .contact-form select {
+  width: 100%; padding: 14px 16px; background: var(--dark);
+  border: 1px solid rgba(255,215,0,0.2); color: var(--white);
+  font-family: var(--font-body); font-size: 15px; outline: none;
+  transition: border-color 0.2s; resize: none;
+}
+.contact-form input:focus, .contact-form textarea:focus { border-color: var(--yellow); box-shadow: var(--glow-sm); }
+.file-upload {
+  padding: 24px; border: 1px dashed rgba(255,215,0,0.3); text-align: center;
+  cursor: pointer; transition: all 0.2s;
+}
+.file-upload:hover { border-color: var(--yellow); background: rgba(255,215,0,0.04); }
+.file-upload input { display: none; }
+.file-icon { font-size: 32px; margin-bottom: 8px; }
+.file-text { font-size: 13px; color: var(--gray2); }
+.file-text strong { display: block; color: var(--white); margin-bottom: 4px; }
+
+/* FOOTER */
+footer {
+  background: var(--dark2); border-top: 1px solid rgba(255,215,0,0.1);
+  padding: 60px 5% 30px; position: relative; z-index: 1;
+}
+.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+.footer-brand p { color: var(--gray2); font-size: 14px; line-height: 1.7; margin: 16px 0 24px; }
+.footer-h { font-family: var(--font-mono); font-size: 11px; color: var(--yellow); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 20px; }
+.footer-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.footer-links a { color: var(--gray2); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+.footer-links a:hover { color: var(--yellow); }
+.footer-bottom { border-top: 1px solid rgba(255,215,0,0.1); padding-top: 24px; display: flex; justify-content: space-between; align-items: center; }
+.footer-copy { font-size: 12px; color: var(--gray); font-family: var(--font-mono); }
+.footer-socials { display: flex; gap: 12px; }
+.social-btn {
+  width: 36px; height: 36px; border: 1px solid rgba(255,215,0,0.2);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gray2); text-decoration: none; font-size: 16px; transition: all 0.2s;
+}
+.social-btn:hover { border-color: var(--yellow); color: var(--yellow); background: rgba(255,215,0,0.08); }
+
+/* ANIMATIONS */
+.reveal {
+  opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+
+/* MOBILE NAV */
+.mobile-nav {
+  display: none; position: fixed; inset: 0; background: var(--black); z-index: 999;
+  flex-direction: column; align-items: center; justify-content: center; gap: 32px;
+}
+.mobile-nav.open { display: flex; }
+.mobile-nav a { font-family: var(--font-head); font-size: 20px; color: var(--white); text-decoration: none; letter-spacing: 2px; text-transform: uppercase; }
+.mobile-nav a:hover { color: var(--yellow); }
+
+/* MEDIA QUERIES */
+@media (max-width: 1200px) {
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+}
+@media (max-width: 1024px) {
+  #hero { grid-template-columns: 1fr; padding: 120px 5% 60px; gap: 32px; }
+  .hero-printer-img { display: none; }
+  .hero-geo { display: none; }
+  .hero-stats { gap: 28px; }
+  .about-grid, .tech-grid, .viewer-wrap { grid-template-columns: 1fr; gap: 40px; }
+  .gallery-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 160px; }
+  .gal-item.wide { grid-column: span 2; }
+  .gal-item.tall { grid-row: span 1; }
+  .pricing-grid { grid-template-columns: 1fr; max-width: 420px; }
+  .contact-grid { grid-template-columns: 1fr; gap: 48px; }
+  .workflow-steps { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .workflow-steps::before { display: none; }
+  .tech-grid { gap: 32px; }
+}
+@media (max-width: 768px) {
+  section { padding: 60px 5%; }
+  .nav-links, .nav-cta { display: none; }
+  .hamburger { display: flex; }
+  #hero { padding: 100px 5% 50px; gap: 32px; }
+  .hero-h1 { font-size: 32px; }
+  .hero-sub { font-size: 15px; }
+  .hero-stats { gap: 20px; }
+  .stat-num { font-size: 22px; }
+  .gallery-grid { grid-template-columns: 1fr 1fr; grid-auto-rows: 140px; }
+  .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+  .testimonial { flex-direction: column; padding: 0 8px; }
+  .workflow-steps { grid-template-columns: 1fr; gap: 24px; }
+  .about-grid { grid-template-columns: 1fr; gap: 32px; }
+  .services-grid { grid-template-columns: 1fr; }
+  .materials-grid { grid-template-columns: repeat(2, 1fr); }
+  .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
+  .pricing-grid { max-width: 100%; }
+}
+@media (max-width: 480px) {
+  .hero-btns { flex-direction: column; }
+  .btn-primary, .btn-outline { width: 100%; justify-content: center; }
+  .gallery-grid { grid-template-columns: 1fr; }
+  .gal-item.wide { grid-column: span 1; }
+  .materials-grid { grid-template-columns: 1fr; }
+  .gallery-tabs { overflow-x: auto; flex-wrap: nowrap; }
+  .about-features { grid-template-columns: 1fr; }
+}
+
+/* NOTIFICATION */
+.notification {
+  position: fixed; bottom: 30px; right: 30px; z-index: 9999;
+  background: var(--dark2); border: 1px solid var(--yellow);
+  padding: 16px 24px; font-family: var(--font-mono); font-size: 13px;
+  color: var(--yellow); max-width: 300px; transform: translateY(100px);
+  opacity: 0; transition: all 0.4s; pointer-events: none;
+}
+.notification.show { transform: translateY(0); opacity: 1; }
+
+/* Filament spool animation */
+.spool {
+  display: inline-block; animation: spoolspin 3s linear infinite;
+}
+@keyframes spoolspin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Progress bars */
+.prog-bar { height: 3px; background: var(--dark3); margin: 6px 0; }
+.prog-fill { height: 100%; background: var(--yellow); width: 0; transition: width 1s ease; }
+
+/* BACK TO TOP BUTTON */
+#backToTop {
+  position: fixed; bottom: 30px; right: 30px; z-index: 9000;
+  width: 44px; height: 44px; background: var(--yellow); color: var(--black);
+  border: none; cursor: pointer; font-size: 18px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transform: translateY(20px); transition: all 0.3s;
+  pointer-events: none;
+}
+#backToTop.visible { opacity: 1; transform: translateY(0); pointer-events: all; }
+#backToTop:hover { background: var(--yellow-bright); box-shadow: var(--glow); transform: translateY(-3px); }
+
+/* STICKY QUOTE BAR */
+#stickyQuoteBar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 8999;
+  background: rgba(8,8,8,0.95); backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255,215,0,0.2);
+  padding: 12px 5%; display: flex; align-items: center; justify-content: space-between;
+  transform: translateY(100%); transition: transform 0.4s ease;
+}
+#stickyQuoteBar.visible { transform: translateY(0); }
+#stickyQuoteBar span { font-size: 14px; color: var(--gray2); font-family: var(--font-body); }
+@media (max-width: 480px) { #stickyQuoteBar span { display: none; } #stickyQuoteBar { justify-content: center; } }
+
+/* IMPROVED SECTION FLOW */
+.section-tag { margin-bottom: 12px; }
+.faq-a { padding-bottom: 4px; line-height: 1.75; }
+</style>
+</head>
+<body>
+
+<!-- Custom Cursor -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- Loader -->
+<div id="loader">
+  <canvas id="loader-canvas" width="120" height="120"></canvas>
+  <div class="loader-text">INITIALIZING ABMS 3D PRINTING</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+</div>
+
+<!-- Mobile Nav -->
+<div class="mobile-nav" id="mobileNav">
+  <a href="#hero" onclick="closeMobileNav()">Home</a>
+  <a href="#about" onclick="closeMobileNav()">About</a>
+  <a href="#services" onclick="closeMobileNav()">Services</a>
+  <a href="#gallery" onclick="closeMobileNav()">Gallery</a>
+  <a href="#contact" onclick="closeMobileNav()">Contact</a>
+</div>
+
+<!-- NAV -->
+<nav id="navbar">
+  <a href="#hero" class="nav-logo">⬡ ABMS <span>3D Printing</span></a>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#services">Services</a></li>
+    <li><a href="#materials">Materials</a></li>
+    <li><a href="#gallery">Gallery</a></li>
+    <li><a href="#faq">FAQ</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+  <a href="#contact" class="nav-cta">Get Quote</a>
+  <div class="hamburger" id="hamburger" onclick="toggleMobileNav()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-geo"></div>
+  <div class="hero-content">
+    <div class="hero-tag">Melbourne, Australia</div>
+    <h1 class="hero-h1">
+      Precision<br><em>3D Printing</em><br>Made Simple
+    </h1>
+    <p class="hero-sub">Custom 3D printing in Melbourne — no 3D file needed. Just send a photo or sketch and get a quote within 2 hours. Fast turnaround, professional results.</p>
+    <div class="hero-btns">
+      <a href="#contact" class="btn-primary">⚡ Get a Quote</a>
+      <a href="#gallery" class="btn-outline">◈ View Gallery</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-num" data-count="500">0</div>
+        <div class="stat-label">Projects Completed</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" data-count="8">0</div>
+        <div class="stat-label">Years Experience</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" data-count="12">0</div>
+        <div class="stat-label">Material Types</div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-printer-img">
+    <div class="hero-printer-placeholder">
+      <canvas class="hero-3d-canvas" id="heroCanvas"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="about-grid">
+    <div class="profile-card reveal">
+      <div class="profile-img-wrap">
+        <div class="profile-img-placeholder">👨‍🏫</div>
+      </div>
+      <div class="profile-name">Abul Basher</div>
+      <div class="profile-title">Engineering Lecturer</div>
+      <div class="profile-inst">Swinburne University of Technology</div>
+      <div class="trust-badges">
+        <div class="badge"><span class="badge-icon">🎓</span><span class="badge-text">Academic Excellence in Engineering</span></div>
+        <div class="badge"><span class="badge-icon">⚙️</span><span class="badge-text">Precision Manufacturing Specialist</span></div>
+        <div class="badge"><span class="badge-icon">⚡</span><span class="badge-text">Fast Turnaround — 24hr Available</span></div>
+        <div class="badge"><span class="badge-icon">🏆</span><span class="badge-text">500+ Successful Projects</span></div>
+      </div>
+    </div>
+    <div class="about-text">
+      <div class="section-tag">About</div>
+      <h2>Engineering <em>Expertise</em> Meets Cutting-Edge Fabrication</h2>
+      <p>As a lecturer in mechanical engineering at Swinburne University of Technology, I bring academic rigour and real-world precision to every print job. My deep understanding of material science and design tolerances ensures your project is optimised from concept to final part.</p>
+      <p>Whether you're a student building a university project, an engineer needing functional prototypes, or a business requiring small-batch production, I provide professional-grade 3D printing services tailored to your exact specifications.</p>
+      <div class="about-features reveal">
+        <div class="feat-item">
+          <div class="feat-num" data-count="500">0</div>
+          <div class="feat-label">Projects Completed</div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-num" data-count="98">0</div>
+          <div class="feat-label">% Client Satisfaction</div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-num" data-count="8">0</div>
+          <div class="feat-label">Years in 3D Printing</div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-num" data-count="50">0</div>
+          <div class="feat-label">University Clients</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section id="services">
+  <div class="section-tag">What We Offer</div>
+  <h2>Professional <em>Services</em></h2>
+  <p class="section-desc">From rapid prototyping to full production runs — engineered for precision, delivered on time.</p>
+  <div class="services-grid">
+    <div class="service-card reveal" onclick="toggleService(this)">
+      <span class="service-icon">🖨️</span>
+      <h3>Custom 3D Printing</h3>
+      <p>No 3D file? No problem — just send a photo or sketch and we'll model it for you, then print it to spec.</p>
+      <div class="service-more">Learn More →</div>
+      <div class="service-expanded">We support all standard file formats and can advise on design optimisation for FDM printing. Layer heights from 0.1mm to 0.3mm available with full colour and material selection.</div>
+    </div>
+    <div class="service-card reveal reveal-delay-1" onclick="toggleService(this)">
+      <span class="service-icon">⚙️</span>
+      <h3>Engineering Prototypes</h3>
+      <p>Functional, dimensionally accurate prototypes for mechanical testing and design validation.</p>
+      <div class="service-more">Learn More →</div>
+      <div class="service-expanded">Tolerances to ±0.2mm. Full post-processing available including sanding, priming, and painting. Engineering review included for structural prints.</div>
+    </div>
+    <div class="service-card reveal reveal-delay-2" onclick="toggleService(this)">
+      <span class="service-icon">💡</span>
+      <h3>Product Design & Modelling</h3>
+      <p>CAD design services from concept to print-ready file, with engineering consultation.</p>
+      <div class="service-more">Learn More →</div>
+      <div class="service-expanded">Full CAD modelling using Fusion 360 and SolidWorks. Design for manufacturing (DFM) review ensures your model prints correctly first time.</div>
+    </div>
+    <div class="service-card reveal reveal-delay-3" onclick="toggleService(this)">
+      <span class="service-icon">🏭</span>
+      <h3>Small Batch Production</h3>
+      <p>Cost-effective short runs of 5–100 identical parts with consistent quality across the batch.</p>
+      <div class="service-more">Learn More →</div>
+      <div class="service-expanded">Batch pricing available from 5+ units. Quality control included. Ideal for startups, product testing, and market validation runs.</div>
+    </div>
+    <div class="service-card reveal reveal-delay-1" onclick="toggleService(this)">
+      <span class="service-icon">🔩</span>
+      <h3>Post-Processing & Finishing</h3>
+      <p>Sanding, painting, assembly, and surface treatment for professional-quality final parts.</p>
+      <div class="service-more">Learn More →</div>
+      <div class="service-expanded">Acetone vapour smoothing for ABS. Epoxy coating for watertight parts. Spray painting and primer available. Threaded insert installation included.</div>
+    </div>
+  </div>
+</section>
+
+
+<!-- MATERIALS -->
+<section id="materials">
+  <div class="section-tag">Filament Range</div>
+  <h2>Materials <em>Showcase</em></h2>
+  <p class="section-desc">Hover over each material to reveal its engineering properties. Hover for details.</p>
+  <div class="materials-grid">
+    <div class="mat-card reveal">
+      <div class="mat-front">
+        <span class="mat-icon">🟡</span>
+        <div class="mat-name">PLA</div>
+        <div class="mat-sub">Polylactic Acid</div>
+      </div>
+      <div class="mat-back">
+        <div class="mat-prop"><span class="mat-prop-label">Strength</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:65%"></div></div><span>65%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Flexibility</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:20%"></div></div><span>20%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Heat Res.</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:40%"></div></div><span>40%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Print Ease</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:95%"></div></div><span>95%</span></div>
+        <span class="mat-tag">Best for: Models, Displays</span>
+      </div>
+    </div>
+    <div class="mat-card reveal reveal-delay-1">
+      <div class="mat-front">
+        <span class="mat-icon">🔵</span>
+        <div class="mat-name">ABS</div>
+        <div class="mat-sub">Acrylonitrile Butadiene Styrene</div>
+      </div>
+      <div class="mat-back">
+        <div class="mat-prop"><span class="mat-prop-label">Strength</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:75%"></div></div><span>75%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Flexibility</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:35%"></div></div><span>35%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Heat Res.</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:75%"></div></div><span>75%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Print Ease</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:60%"></div></div><span>60%</span></div>
+        <span class="mat-tag">Best for: Functional Parts</span>
+      </div>
+    </div>
+    <div class="mat-card reveal reveal-delay-2">
+      <div class="mat-front">
+        <span class="mat-icon">🟢</span>
+        <div class="mat-name">PETG</div>
+        <div class="mat-sub">Polyethylene Terephthalate Glycol</div>
+      </div>
+      <div class="mat-back">
+        <div class="mat-prop"><span class="mat-prop-label">Strength</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:80%"></div></div><span>80%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Flexibility</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:50%"></div></div><span>50%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Heat Res.</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:65%"></div></div><span>65%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Print Ease</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:80%"></div></div><span>80%</span></div>
+        <span class="mat-tag">Best for: Mechanical Parts</span>
+      </div>
+    </div>
+    <div class="mat-card reveal reveal-delay-3">
+      <div class="mat-front">
+        <span class="mat-icon">🟠</span>
+        <div class="mat-name">TPU</div>
+        <div class="mat-sub">Thermoplastic Polyurethane</div>
+      </div>
+      <div class="mat-back">
+        <div class="mat-prop"><span class="mat-prop-label">Strength</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:60%"></div></div><span>60%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Flexibility</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:95%"></div></div><span>95%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Heat Res.</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:50%"></div></div><span>50%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Print Ease</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:55%"></div></div><span>55%</span></div>
+        <span class="mat-tag">Best for: Grips, Gaskets</span>
+      </div>
+    </div>
+    <div class="mat-card reveal reveal-delay-4">
+      <div class="mat-front">
+        <span class="mat-icon">⚫</span>
+        <div class="mat-name">Carbon Fibre</div>
+        <div class="mat-sub">CF-Reinforced Composite</div>
+      </div>
+      <div class="mat-back">
+        <div class="mat-prop"><span class="mat-prop-label">Strength</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:98%"></div></div><span>98%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Flexibility</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:10%"></div></div><span>10%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Heat Res.</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:85%"></div></div><span>85%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Weight</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:15%"></div></div><span>Very Low</span></div>
+        <span class="mat-tag">Best for: Structural, Aerospace</span>
+      </div>
+    </div>
+    <div class="mat-card reveal">
+      <div class="mat-front">
+        <span class="mat-icon">🔴</span>
+        <div class="mat-name">Specialty</div>
+        <div class="mat-sub">Wood, Silk, Glow, Metal Fill</div>
+      </div>
+      <div class="mat-back">
+        <div class="mat-prop"><span class="mat-prop-label">Strength</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:55%"></div></div><span>Varies</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Aesthetic</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:100%"></div></div><span>100%</span></div>
+        <div class="mat-prop"><span class="mat-prop-label">Uniqueness</span><div class="mat-bar-wrap"><div class="mat-bar" style="width:100%"></div></div><span>100%</span></div>
+        <span class="mat-tag">Best for: Art, Gifts, Displays</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GALLERY -->
+<section id="gallery" style="background: var(--dark);">
+  <div class="section-tag">Portfolio</div>
+  <h2>Print <em>Gallery</em></h2>
+  <p class="section-desc">A selection of projects from our studio — hover for details.</p>
+  <div class="gallery-tabs">
+    <button class="tab-btn active" onclick="filterGallery('all', this)">All Work</button>
+    <button class="tab-btn" onclick="filterGallery('mechanical', this)">Mechanical Parts</button>
+    <button class="tab-btn" onclick="filterGallery('prototype', this)">Prototypes</button>
+    <button class="tab-btn" onclick="filterGallery('decorative', this)">Decorative</button>
+    <button class="tab-btn" onclick="filterGallery('functional', this)">Functional Prints</button>
+  </div>
+  <div class="gallery-grid" id="galleryGrid">
+    <div class="gal-item wide tall" data-cat="mechanical">
+      <div class="gal-placeholder" style="background: linear-gradient(135deg, #1a1a1a, #2a2a2a);">
+        <span class="gal-icon">⚙️</span>
+        <span style="font-size:12px; color: var(--gray2); font-family: var(--font-mono);">GEAR ASSEMBLY</span>
+      </div>
+      <div class="gal-overlay"><div class="gal-title">Planetary Gear System</div><div class="gal-cat">Mechanical Parts · PLA</div></div>
+    </div>
+    <div class="gal-item" data-cat="prototype">
+      <div class="gal-placeholder" style="background: linear-gradient(135deg, #1c1c0a, #2a2a10);">
+        <span class="gal-icon">🔬</span>
+      </div>
+      <div class="gal-overlay"><div class="gal-title">Sensor Housing</div><div class="gal-cat">Prototype · PETG</div></div>
+    </div>
+    <div class="gal-item" data-cat="functional">
+      <div class="gal-placeholder" style="background: linear-gradient(135deg, #0a1c1a, #10272a);">
+        <span class="gal-icon">🔩</span>
+      </div>
+      <div class="gal-overlay"><div class="gal-title">Cable Management Clip</div><div class="gal-cat">Functional · TPU</div></div>
+    </div>
+    <div class="gal-item tall" data-cat="decorative">
+      <div class="gal-placeholder" style="background: linear-gradient(135deg, #1a0a1c, #271027);">
+        <span class="gal-icon">🏺</span>
+      </div>
+      <div class="gal-overlay"><div class="gal-title">Decorative Vase — Silk PLA</div><div class="gal-cat">Decorative · Silk PLA</div></div>
+    </div>
+    <div class="gal-item" data-cat="mechanical">
+      <div class="gal-placeholder" style="background: linear-gradient(135deg, #1a1508, #261e08);">
+        <span class="gal-icon">🔧</span>
+      </div>
+      <div class="gal-overlay"><div class="gal-title">Custom Bracket</div><div class="gal-cat">Mechanical · ABS</div></div>
+    </div>
+    <div class="gal-item wide" data-cat="prototype">
+      <div class="gal-placeholder" style="background: linear-gradient(135deg, #08101a, #0a1826);">
+        <span class="gal-icon">🚀</span>
+        <span style="font-size:12px; color: var(--gray2); font-family: var(--font-mono);">DRONE FRAME PROTOTYPE</span>
+      </div>
+      <div class="gal-overlay"><div class="gal-title">UAV Frame Prototype</div><div class="gal-cat">Prototype · Carbon Fibre</div></div>
+    </div>
+    <div class="gal-item" data-cat="functional">
+      <div class="gal-placeholder" style="background: linear-gradient(135deg, #0a1a0a, #101f10);">
+        <span class="gal-icon">🔋</span>
+      </div>
+      <div class="gal-overlay"><div class="gal-title">Battery Enclosure</div><div class="gal-cat">Functional · PETG</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section id="testimonials">
+  <div class="section-tag">Reviews</div>
+  <h2>What Clients <em>Say</em></h2>
+  <div class="testimonials-wrap reveal">
+    <div class="testimonials-track" id="testimonialsTrack">
+      <div class="testimonial">
+        <div class="test-content">
+          <div class="stars">★★★★★</div>
+          <div class="test-quote">The quality of my engineering prototype was exceptional. Abul's academic background really shows — he understood my tolerances immediately and delivered a perfect result within 48 hours.</div>
+          <div class="test-author">
+            <div class="test-avatar">👨‍🔬</div>
+            <div>
+              <div class="test-name">Dr. James Hartley</div>
+              <div class="test-role">Senior R&D Engineer, Melbourne</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <div class="test-content">
+          <div class="stars">★★★★★</div>
+          <div class="test-quote">As a mechanical engineering student, I needed my final-year project prototype printed urgently. Abul delivered overnight and even helped me optimise the design — went above and beyond!</div>
+          <div class="test-author">
+            <div class="test-avatar">👩‍🎓</div>
+            <div>
+              <div class="test-name">Sarah Chen</div>
+              <div class="test-role">Swinburne University Student</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <div class="test-content">
+          <div class="stars">★★★★★</div>
+          <div class="test-quote">We used ABMS 3D Printing for a batch of 50 enclosures for our IoT startup. The consistency was incredible — every single piece was perfect. Will absolutely order again for production runs.</div>
+          <div class="test-author">
+            <div class="test-avatar">👨‍💼</div>
+            <div>
+              <div class="test-name">Michael Nguyen</div>
+              <div class="test-role">Founder, ConnectIQ Pty Ltd</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="test-nav">
+      <button class="test-btn" onclick="prevTestimonial()">←</button>
+      <button class="test-btn" onclick="nextTestimonial()">→</button>
+    </div>
+    <div class="test-dots">
+      <div class="test-dot active" onclick="goTestimonial(0)"></div>
+      <div class="test-dot" onclick="goTestimonial(1)"></div>
+      <div class="test-dot" onclick="goTestimonial(2)"></div>
+    </div>
+  </div>
+</section>
+
+<!-- WORKFLOW -->
+<section id="workflow" style="background: var(--dark);">
+  <div class="section-tag">How It Works</div>
+  <h2>The <em>Print</em> Process</h2>
+  <p class="section-desc">Simple, transparent, and professional from start to delivery.</p>
+  <div class="workflow-steps">
+    <div class="step reveal">
+      <div class="step-num"><span class="step-icon">📁</span></div>
+      <h4>Submit Design</h4>
+      <p>No 3D file? No problem. Just send us a photo, sketch, or reference image of what you want — we handle the modelling from there.</p>
+    </div>
+    <div class="step reveal reveal-delay-1">
+      <div class="step-num"><span class="step-icon">💬</span></div>
+      <h4>Review & Quote</h4>
+      <p>We review your design within 2 hours, check for printability issues, and send you a detailed quote with options.</p>
+    </div>
+    <div class="step reveal reveal-delay-2">
+      <div class="step-num"><span class="step-icon">🖨️</span></div>
+      <h4>Precision Printing</h4>
+      <p>Once approved, we print your part on the Bambu Lab P1S with continuous quality monitoring throughout the print.</p>
+    </div>
+    <div class="step reveal reveal-delay-3">
+      <div class="step-num"><span class="step-icon">📦</span></div>
+      <h4>Delivery</h4>
+      <p>Pickup from Tarneit or express shipping anywhere in Australia. Parts are packaged to prevent any damage in transit.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" style="background: var(--dark);">
+  <div class="section-tag">FAQ</div>
+  <h2>Common <em>Questions</em></h2>
+  <div class="faq-list reveal">
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">What file formats do you accept? <em class="faq-icon">+</em></button>
+      <div class="faq-a">You don't need a 3D file at all — a photo, screenshot, sketch, or even a hand drawing is enough to get started. If you do have a 3D file, we accept STL, OBJ, 3MF, and STEP formats. Either way, we'll review what you send and advise on the best path to a finished print.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">How long does printing take? <em class="faq-icon">+</em></button>
+      <div class="faq-a">Standard turnaround is 24–48 hours from payment confirmation. Complex multi-material prints or large batch orders may take 3–5 business days. Express same-day service is available for urgent requests at an additional fee.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">What is the maximum print size? <em class="faq-icon">+</em></button>
+      <div class="faq-a">The Bambu Lab P1S has a build volume of 256mm × 256mm × 256mm. Larger parts can be printed in sections and professionally joined, with near-invisible seam lines.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Can you help design my part if I don't have a file? <em class="faq-icon">+</em></button>
+      <div class="faq-a">Absolutely. We offer CAD design services — simply provide sketches, dimensions, or a reference object. Design fees start from $50 depending on complexity, and the print fee is separate.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Do you ship outside Melbourne? <em class="faq-icon">+</em></button>
+      <div class="faq-a">Yes, we ship Australia-wide via Express Post and StarTrack. International shipping is available on request. All items are professionally packaged. Free pickup is available from Tarneit, Melbourne.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Are there student discounts? <em class="faq-icon">+</em></button>
+      <div class="faq-a">Yes! Students with a valid student ID receive a 15% discount on all print orders. Swinburne University students receive a 20% discount. Just mention your institution and student ID when requesting a quote.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="section-tag">Custom Quote</div>
+  <h2>Get Your <em>Free Quote</em></h2>
+  <div class="contact-grid">
+    <div class="contact-info reveal">
+      <h3>Request a Custom Quote</h3>
+      <p>Every print is priced individually based on your material, size, and finish — so the best way to get an accurate price is to simply send us the details. Fill in the form and we'll get back to you with a tailored quote within 2 hours.</p>
+      <div class="contact-detail">
+        <div class="contact-icon">📍</div>
+        <div class="contact-text"><strong>Location</strong>Tarneit, Melbourne VIC 3029</div>
+      </div>
+      <div class="contact-detail">
+        <div class="contact-icon">✉️</div>
+        <div class="contact-text"><strong>Email</strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7d1c1f100e4e190d0f14130914131a3d1a101c1411531e1210">[email&#160;protected]</a></div>
+      </div>
+      <div class="contact-detail">
+        <div class="contact-icon">⏱️</div>
+        <div class="contact-text"><strong>Response Time</strong>Within 2 hours (business hours)</div>
+      </div>
+      <br>
+      <div style="background: var(--dark); border: 1px solid rgba(255,215,0,0.15); padding: 24px;">
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--yellow); letter-spacing: 2px; margin-bottom: 12px;">SERVICE AREA</div>
+        <div style="font-size: 14px; color: var(--gray2); line-height: 1.8;">
+          🟡 Melbourne Metro — Free Pickup / Same-Day Delivery<br>
+          🟡 Victoria — Express Post 1–2 Days<br>
+          🟡 Australia-Wide — Express Post 2–5 Days<br>
+          🟡 International — On Request
+        </div>
+      </div>
+    </div>
+    <form class="contact-form reveal reveal-delay-2" action="https://formspree.io/f/xgoneqpb" method="POST">
+      <div class="form-group">
+        <input type="text" name="name" placeholder="Your Full Name" required>
+      </div>
+      <div class="form-group">
+        <input type="email" name="email" placeholder="Email Address" required>
+      </div>
+      <div class="form-group">
+        <select name="service">
+          <option value="">Select Service Type...</option>
+          <option>Custom 3D Printing</option>
+          <option>Engineering Prototype</option>
+          <option>Product Design & Modelling</option>
+          <option>Small Batch Production</option>
+          <option>Post-Processing & Finishing</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <textarea name="message" rows="4" placeholder="Describe your project — materials, size, quantity, deadline, any special requirements..."></textarea>
+      </div>
+      <div class="form-group">
+        <input type="url" name="file_link" placeholder="Paste a link to your image or model (Google Drive, Dropbox, etc.)">
+        <div style="margin-top: 10px; padding: 12px 16px; background: rgba(255,215,0,0.05); border-left: 3px solid var(--yellow); font-size: 13px; color: var(--gray2);">
+          <span style="color: var(--yellow); font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px;">💡 NO 3D FILE? NO PROBLEM.</span><br>
+          Just upload your image, sketch, or model to Google Drive, Dropbox, or any file sharing service and paste the link above. Even a photo from your phone is enough — we'll handle the rest.
+        </div>
+      </div>
+      <button type="submit" class="btn-primary" style="width:100%; justify-content:center; font-size:13px;">⚡ Send Enquiry & Get Quote</button>
+    </form>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <a href="#hero" class="nav-logo" style="font-size:18px;">⬡ ABMS <span>3D Printing</span></a>
+      <p>Professional 3D printing and engineering prototyping services by Abul Basher — engineering lecturer, Swinburne University of Technology.</p>
+      <div style="font-family: var(--font-mono); font-size: 11px; color: var(--gray); letter-spacing: 1px;">TARNEIT, MELBOURNE · EST. 2017</div>
+    </div>
+    <div>
+      <div class="footer-h">Services</div>
+      <ul class="footer-links">
+        <li><a href="#services">Custom Printing</a></li>
+        <li><a href="#services">Engineering Prototypes</a></li>
+        <li><a href="#services">Product Design</a></li>
+        <li><a href="#services">Batch Production</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-h">Materials</div>
+      <ul class="footer-links">
+        <li><a href="#materials">PLA</a></li>
+        <li><a href="#materials">ABS</a></li>
+        <li><a href="#materials">PETG</a></li>
+        <li><a href="#materials">TPU Flexible</a></li>
+        <li><a href="#materials">Carbon Fibre</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-h">Quick Links</div>
+      <ul class="footer-links">
+        <li><a href="#about">About Abul</a></li>
+        <li><a href="#contact">Get a Quote</a></li>
+        <li><a href="#gallery">Gallery</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2025 ABMS 3D Printing · ABN 00 000 000 000 · Tarneit VIC 3029</div>
+    <div class="footer-socials">
+      <a href="#" class="social-btn">in</a>
+      <a href="#" class="social-btn">tw</a>
+      <a href="#" class="social-btn">ig</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Notification -->
+<div class="notification" id="notification">✓ Message sent! We'll reply within 2 hours.</div>
+
+<!-- Back to Top -->
+<button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">↑</button>
+
+<!-- Sticky Quote Bar (appears after scroll) -->
+<div id="stickyQuoteBar">
+  <span>Ready to start your project?</span>
+  <a href="#contact" class="nav-cta" style="padding:8px 20px; font-size:11px;">⚡ Get Free Quote</a>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ==============================
+// CUSTOM CURSOR
+// ==============================
+const cursor = document.getElementById('cursor');
+const cursorRing = document.getElementById('cursorRing');
+document.addEventListener('mousemove', e => {
+  cursor.style.left = e.clientX + 'px';
+  cursor.style.top = e.clientY + 'px';
+  setTimeout(() => {
+    cursorRing.style.left = e.clientX + 'px';
+    cursorRing.style.top = e.clientY + 'px';
+  }, 80);
+});
+document.querySelectorAll('a,button,.mat-card,.gal-item,.service-card').forEach(el => {
+  el.addEventListener('mouseenter', () => { cursor.style.width = '16px'; cursor.style.height = '16px'; });
+  el.addEventListener('mouseleave', () => { cursor.style.width = '8px'; cursor.style.height = '8px'; });
+});
+
+// ==============================
+// LOADER — always hides after 2s
+// ==============================
+function hideLoader() {
+  const loader = document.getElementById('loader');
+  if (!loader) return;
+  loader.style.transition = 'opacity 0.5s';
+  loader.style.opacity = '0';
+  setTimeout(() => { loader.style.display = 'none'; }, 500);
+}
+setTimeout(hideLoader, 2000);
+
+// Spinning cube on loader canvas
+let loaderAngle = 0;
+(function animLoader() {
+  try {
+    const c = document.getElementById('loader-canvas');
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, 120, 120);
+    ctx.save(); ctx.translate(60, 60);
+    const s = 25;
+    const pts = [[-s,-s,-s],[s,-s,-s],[s,s,-s],[-s,s,-s],[-s,-s,s],[s,-s,s],[s,s,s],[-s,s,s]];
+    const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+    const ry = loaderAngle, rx = loaderAngle * 0.6;
+    function proj(p) {
+      let x = p[0]*Math.cos(ry) + p[2]*Math.sin(ry);
+      let y2 = p[1], z2 = -p[0]*Math.sin(ry) + p[2]*Math.cos(ry);
+      let y3 = y2*Math.cos(rx) - z2*Math.sin(rx);
+      let z3 = y2*Math.sin(rx) + z2*Math.cos(rx);
+      const f = 300 / (300 + z3);
+      return [x*f, y3*f];
+    }
+    ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.9;
+    edges.forEach(e => {
+      const a = proj(pts[e[0]]), b = proj(pts[e[1]]);
+      ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+    });
+    ctx.restore();
+    loaderAngle += 0.025;
+  } catch(e) {}
+  requestAnimationFrame(animLoader);
+})();
+
+// ==============================
+// NAV SCROLL
+// ==============================
+window.addEventListener('scroll', () => {
+  const nav = document.getElementById('navbar');
+  if (nav) nav.classList.toggle('scrolled', window.scrollY > 50);
+});
+function toggleMobileNav() {
+  document.getElementById('mobileNav').classList.toggle('open');
+}
+function closeMobileNav() {
+  document.getElementById('mobileNav').classList.remove('open');
+}
+
+// ==============================
+// SCROLL REVEAL
+// ==============================
+const revealObs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+// ==============================
+// COUNTERS
+// ==============================
+const counterObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      animateCounter(e.target);
+      counterObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.5 });
+document.querySelectorAll('[data-count]').forEach(el => counterObs.observe(el));
+
+function animateCounter(el) {
+  const target = parseInt(el.getAttribute('data-count'));
+  let current = 0;
+  const step = Math.ceil(target / 60);
+  const interval = setInterval(() => {
+    current = Math.min(current + step, target);
+    el.textContent = current + (el.closest('.stat') ? '+' : '');
+    if (current >= target) clearInterval(interval);
+  }, 25);
+}
+
+// ==============================
+// HERO CANVAS (2D rotating cube)
+// ==============================
+function initHeroCanvas() {
+  const canvas = document.getElementById('heroCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
+  resize();
+  let angle = 0;
+  (function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const s = Math.min(canvas.width, canvas.height) * 0.22;
+    const pts = [[-s,-s,-s],[s,-s,-s],[s,s,-s],[-s,s,-s],[-s,-s,s],[s,-s,s],[s,s,s],[-s,s,s]];
+    const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+    const ry = angle, rx = angle * 0.5;
+    function proj(p) {
+      let x = p[0]*Math.cos(ry) + p[2]*Math.sin(ry);
+      let y2 = p[1], z2 = -p[0]*Math.sin(ry) + p[2]*Math.cos(ry);
+      let y3 = y2*Math.cos(rx) - z2*Math.sin(rx);
+      let z3 = y2*Math.sin(rx) + z2*Math.cos(rx);
+      const f = 500 / (500 + z3);
+      return [x*f + cx, y3*f + cy];
+    }
+    ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 18;
+    ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2; ctx.globalAlpha = 0.8;
+    edges.forEach(e => {
+      const a = proj(pts[e[0]]), b = proj(pts[e[1]]);
+      ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+    });
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+    ctx.fillStyle = 'rgba(255,215,0,0.7)'; ctx.font = '10px Share Tech Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText('BAMBU LAB P1S', cx, canvas.height - 20);
+    angle += 0.008;
+    requestAnimationFrame(draw);
+  })();
+}
+initHeroCanvas();
+
+// ==============================
+// THREE.JS VIEWER
+// ==============================
+let threeScene, threeCamera, threeRenderer, threeMesh, isAnimating = true;
+let isDragging = false, prevMouse = {x:0, y:0};
+let currentShape = 'box', currentColor = '#FFD700', currentFinish = 'flat';
+
+function initThreeJS() {
+  const canvas = document.getElementById('three-canvas');
+  if (!canvas || !window.THREE) return;
+  const w = canvas.offsetWidth, h = canvas.offsetHeight || 400;
+  threeScene = new THREE.Scene();
+  threeScene.background = new THREE.Color(0x0F0F0F);
+  threeCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+  threeCamera.position.set(0, 2, 5);
+  threeCamera.lookAt(0, 0, 0);
+  threeRenderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  threeRenderer.setSize(w, h);
+  threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  threeScene.add(new THREE.AmbientLight(0x333333));
+  const dirLight = new THREE.DirectionalLight(0xFFD700, 1.2);
+  dirLight.position.set(5, 8, 5);
+  threeScene.add(dirLight);
+  threeScene.add(new THREE.GridHelper(10, 20, 0x222222, 0x1a1a1a));
+  createMesh('box');
+  canvas.addEventListener('mousedown', e => { isDragging = true; prevMouse = {x: e.clientX, y: e.clientY}; });
+  window.addEventListener('mouseup', () => { isDragging = false; });
+  canvas.addEventListener('mousemove', e => {
+    if (!isDragging || !threeMesh) return;
+    threeMesh.rotation.y += (e.clientX - prevMouse.x) * 0.01;
+    threeMesh.rotation.x += (e.clientY - prevMouse.y) * 0.01;
+    prevMouse = {x: e.clientX, y: e.clientY};
+  });
+  canvas.addEventListener('wheel', e => {
+    threeCamera.position.z = Math.max(2, Math.min(10, threeCamera.position.z + e.deltaY * 0.01));
+  });
+  (function animThree() {
+    requestAnimationFrame(animThree);
+    if (isAnimating && threeMesh) threeMesh.rotation.y += 0.005;
+    threeRenderer.render(threeScene, threeCamera);
+  })();
+}
+
+function createMesh(shape) {
+  if (threeMesh) threeScene.remove(threeMesh);
+  const geos = {
+    box: new THREE.BoxGeometry(2,2,2),
+    sphere: new THREE.SphereGeometry(1.2,32,32),
+    torus: new THREE.TorusGeometry(1.1,0.4,16,64),
+    cone: new THREE.ConeGeometry(1.2,2.5,32),
+    cylinder: new THREE.CylinderGeometry(0.8,0.8,2.5,32)
+  };
+  const roughness = currentFinish==='flat'?0.9:currentFinish==='standard'?0.4:0.05;
+  const metalness = currentFinish==='flat'?0.1:currentFinish==='standard'?0.3:0.8;
+  threeMesh = new THREE.Mesh(geos[shape] || geos.box, new THREE.MeshStandardMaterial({
+    color: new THREE.Color(currentColor), roughness, metalness
+  }));
+  threeMesh.position.y = 0.2;
+  threeScene.add(threeMesh);
+}
+
+// Load Three.js then init viewer
+const threeScript = document.createElement('script');
+threeScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+threeScript.onload = initThreeJS;
+document.body.appendChild(threeScript);
+
+function changeShape(shape) {
+  currentShape = shape;
+  document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  if (window.THREE) createMesh(shape);
+}
+function changeColor(color, btn) {
+  currentColor = color;
+  document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (threeMesh) threeMesh.material.color = new THREE.Color(color);
+}
+function setFinish(btn, finish) {
+  currentFinish = finish;
+  document.querySelectorAll('.viewer-controls .q-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (window.THREE) createMesh(currentShape);
+}
+function toggleAnim() {
+  isAnimating = !isAnimating;
+  document.getElementById('animToggle').textContent = isAnimating ? '⏸ Pause Rotation' : '▶ Resume Rotation';
+}
+
+// ==============================
+// SERVICES TOGGLE
+// ==============================
+function toggleService(card) {
+  card.classList.toggle('open');
+}
+
+// ==============================
+// GALLERY FILTER
+// ==============================
+function filterGallery(cat, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.gal-item').forEach(item => {
+    const match = cat === 'all' || item.dataset.cat === cat;
+    item.style.opacity = match ? '1' : '0.2';
+    item.style.pointerEvents = match ? 'all' : 'none';
+  });
+}
+
+// ==============================
+// TESTIMONIALS
+// ==============================
+let testIdx = 0;
+function goTestimonial(idx) {
+  testIdx = idx;
+  const track = document.getElementById('testimonialsTrack');
+  if (track) track.style.transform = `translateX(-${idx * 100}%)`;
+  document.querySelectorAll('.test-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+}
+function nextTestimonial() { goTestimonial((testIdx + 1) % 3); }
+function prevTestimonial() { goTestimonial((testIdx + 2) % 3); }
+setInterval(nextTestimonial, 5000);
+
+// ==============================
+// FAQ
+// ==============================
+function toggleFaq(btn) {
+  btn.closest('.faq-item').classList.toggle('open');
+}
+
+// ==============================
+// CONTACT FORM
+// ==============================
+function handleFileSelect(input) {
+  if (input.files.length > 0) {
+    document.getElementById('fileName').textContent = '✓ ' + input.files[0].name;
+  }
+}
+function submitForm() {
+  const name = document.getElementById('f-name').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const message = document.getElementById('f-message').value.trim();
+  if (!name || !email) { alert('Please enter your name and email.'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  const errDiv = document.getElementById('formError');
+  btn.textContent = '⏳ Sending...';
+  btn.disabled = true;
+  errDiv.style.display = 'none';
+
+  const data = new FormData();
+  data.append('name', name);
+  data.append('email', email);
+  data.append('service', document.getElementById('f-service').value);
+  data.append('message', message);
+  data.append('file_link', document.getElementById('f-link').value.trim() || 'No link provided');
+
+  fetch('https://formspree.io/f/xgoneqpb', {
+    method: 'POST',
+    headers: { 'Accept': 'application/json' },
+    body: data
+  })
+  .then(res => {
+    if (res.ok) {
+      btn.textContent = '✓ Enquiry Sent!';
+      btn.style.background = '#22c55e';
+      document.getElementById('f-name').value = '';
+      document.getElementById('f-email').value = '';
+      document.getElementById('f-service').value = '';
+      document.getElementById('f-message').value = '';
+      document.getElementById('f-link').value = '';
+      const notif = document.getElementById('notification');
+      if (notif) { notif.classList.add('show'); setTimeout(() => notif.classList.remove('show'), 4000); }
+      setTimeout(() => { btn.textContent = '⚡ Send Enquiry & Get Quote'; btn.style.background = ''; btn.disabled = false; }, 4000);
+    } else {
+      throw new Error('Form error');
+    }
+  })
+  .catch(() => {
+    btn.textContent = '⚡ Send Enquiry & Get Quote';
+    btn.disabled = false;
+    errDiv.style.display = 'block';
+  });
+}
+
+// ==============================
+
+// ==============================
+// UX: BACK TO TOP + STICKY QUOTE BAR
+// ==============================
+const backToTopBtn = document.getElementById('backToTop');
+const stickyBar = document.getElementById('stickyQuoteBar');
+let heroHeight = 0;
+window.addEventListener('scroll', () => {
+  const scrollY = window.scrollY;
+  if (!heroHeight) heroHeight = document.getElementById('hero')?.offsetHeight || 600;
+  // Back to top
+  if (scrollY > 400) backToTopBtn?.classList.add('visible');
+  else backToTopBtn?.classList.remove('visible');
+  // Sticky quote bar — show after hero, hide near contact section
+  const contactTop = document.getElementById('contact')?.getBoundingClientRect().top + scrollY || Infinity;
+  if (scrollY > heroHeight && scrollY < contactTop - 300) {
+    stickyBar?.classList.add('visible');
+  } else {
+    stickyBar?.classList.remove('visible');
+  }
+});
+
+</script>
+</body>
+</html>
